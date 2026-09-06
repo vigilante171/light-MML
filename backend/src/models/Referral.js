@@ -19,6 +19,7 @@ const referralSchema = new mongoose.Schema(
       type: Number,
       required: true,
       min: 1,
+      default: 1,
     },
 
     status: {
@@ -31,6 +32,9 @@ const referralSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+
+referralSchema.index({ sponsor: 1 });
+referralSchema.index({ member: 1 }, { unique: true });
 
 const Referral = mongoose.model("Referral", referralSchema);
 

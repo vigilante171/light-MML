@@ -40,7 +40,7 @@ const user = await User.create({
     referralCode: generatedReferralCode,
     sponsor: sponsor ? sponsor._id : null,
 
-})`r`n`r`n    await createReferralForUser(user);
+})
 return user
 }
 export const authenticateUser = async (email , password ) =>{
@@ -63,9 +63,6 @@ if(!user.isActive){
 }
 return user ;
 }
-
-
-
 
 
 
