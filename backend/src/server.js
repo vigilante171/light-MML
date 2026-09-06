@@ -7,6 +7,9 @@ import morgan from "morgan";
 import cookieParser from "cookie-parser";
 import rateLimit from "express-rate-limit";
 import authRoutes from "./routes/authRoutes.js";
+import categoryRoutes from "./routes/categoryRoutes.js";
+import productRoutes from "./routes/productRoutes.js";
+import cartRoutes from "./routes/cartRoutes.js";
 dotenv.config()
 const app= express()
 const PORT = process.env.PORT||5000
@@ -36,6 +39,9 @@ app.get("/api/health", (req, res) => {
   });
 });
 app.use("/api/auth", authRoutes);
+app.use("/api/categories", categoryRoutes);
+app.use("/api/products", productRoutes);
+app.use("/api/cart", cartRoutes);
 app.use((req, res) => {
   res.status(404).json({
     success: false,
