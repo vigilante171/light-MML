@@ -17,7 +17,6 @@ export const checkout = async (req, res) => {
 
     if (!cart || cart.items.length === 0) {
       await session.abortTransaction();
-
       return res.status(400).json({
         success: false,
         message: "Your cart is empty",
@@ -110,14 +109,142 @@ export const checkout = async (req, res) => {
     });
   } catch (error) {
     await session.abortTransaction();
-
     console.error("Checkout error:", error);
-
     return res.status(400).json({
       success: false,
       message: error.message || "Checkout failed",
     });
   } finally {
     await session.endSession();
+  }
+};
+
+// ✅ New functions
+
+export const getMyOrders = async (req, res) => {
+  try {
+    const orders = await Order.find({
+      user: req.user.userId,
+    })
+      .sort({ createdAt: -1 })
+      .populate("items.product", "name images");
+
+    return res.status(200).json({
+      success: true,
+      count: orders.length,
+      orders,
+    });
+  } catch (error) {
+    console.error("Get orders error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch orders",
+    });
+  }
+};
+
+export const getOrderById = async (req, res) => {
+  try {
+    const order = await Order.findOne({
+      _id: req.params.id,
+      user: req.user.userId,
+    }).populate("items.product", "name images");
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      order,
+    });
+  } catch (error) {
+    console.error("Get order error:", error);
+    return res.status(400).json({
+      success: false,
+      message: "Invalid order ID",
+    });
+  }
+};
+
+// ✅ Admin-level functions
+
+export const getAllOrders = async (req, res) => {
+  try {
+    const orders = await Order.find()
+      .sort({ createdAt: -1 })
+      .populate("user", "firstName lastName email")
+      .populate("items.product", "name images");
+
+    return res.status(200).json({
+      success: true,
+      count: orders.length,
+      orders,
+    });
+  } catch (error) {
+    console.error("Get all orders error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch orders",
+    });
+  }
+};
+
+export const updateOrderStatus = async (req, res) => {
+  try {
+    const { status } = req.body;
+
+    const allowedStatuses = [
+      "PENDING",
+      "PAID",
+      "PROCESSING",
+      "SHIPPED",
+      "DELIVERED",
+      "CANCELLED",
+      "REFUNDED",
+    ];
+
+    if (!allowedStatuses.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid order status",
+      });
+    }
+
+    const order = await Order.findById(req.params.id);
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found",
+      });
+    }
+
+    order.status = status;
+
+    if (status === "PAID") {
+      order.paymentStatus = "PAID";
+    }
+
+    if (status === "REFUNDED") {
+      order.paymentStatus = "REFUNDED";
+    }
+
+    await order.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Order status updated successfully",
+      order,
+    });
+  } catch (error) {
+    console.error("Update order status error:", error);
+    return res.status(400).json({
+      success: false,
+      message: "Failed to update order status",
+    });
   }
 };
