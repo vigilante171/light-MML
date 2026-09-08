@@ -11,7 +11,8 @@ import authRoutes from "./routes/authRoutes.js";
 import categoryRoutes from "./routes/categoryRoutes.js";
 import productRoutes from "./routes/productRoutes.js";
 import cartRoutes from "./routes/cartRoutes.js";
-import orderRoutes from "./routes/orderRoutes.js";
+import orderRoutes from "./routes/orderRoutes.js";`r`
+import referralRoutes from "./routes/referralRoutes.js";
 import referralRoutes from "./routes/referralRoutes.js";
 
 dotenv.config();
@@ -55,7 +56,8 @@ app.use("/api/auth", authRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/cart", cartRoutes);
-app.use("/api/orders", orderRoutes);
+app.use("/api/orders", orderRoutes);`r`
+app.use("/api/referrals", referralRoutes);
 app.use("/api/referrals", referralRoutes);
 
 // ✅ 404 Handler
@@ -76,3 +78,5 @@ const startServer = async () => {
 };
 
 startServer();
+
+
