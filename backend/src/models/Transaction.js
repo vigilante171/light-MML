@@ -46,6 +46,21 @@ const transactionSchema = new mongoose.Schema(
   }
 );
 
+transactionSchema.index(
+  {
+    type: 1,
+    reference: 1,
+  },
+  {
+    unique: true,
+    partialFilterExpression: {
+      reference: {
+        $ne: null,
+      },
+    },
+  }
+);
+
 const Transaction = mongoose.model(
   "Transaction",
   transactionSchema

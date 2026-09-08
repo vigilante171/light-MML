@@ -15,6 +15,8 @@ import orderRoutes from "./routes/orderRoutes.js";`r`
 import referralRoutes from "./routes/referralRoutes.js";
 import commissionRoutes from "./routes/commissionRoutes.js";
 import referralRoutes from "./routes/referralRoutes.js";
+import walletRoutes from "./routes/walletRoutes.js";
+import withdrawalRoutes from "./routes/withdrawalRoutes.js";
 
 dotenv.config();
 
@@ -62,6 +64,11 @@ app.use("/api/referrals", referralRoutes);
 app.use("/api/referrals", referralRoutes);
 app.use("/api/genealogy", genealogyRoutes);
 app.use("/api/commissions", commissionRoutes);
+app.use("/api/wallet", walletRoutes);
+app.use(
+  "/api/withdrawals",
+  withdrawalRoutes
+);
 
 // ✅ 404 Handler
 app.use((req, res) => {

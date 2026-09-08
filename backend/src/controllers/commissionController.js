@@ -1,4 +1,7 @@
 import Commission from "../models/Commission.js";
+import Wallet from "../models/Wallet.js";
+import Transaction from "../models/Transaction.js";
+import mongoose from "mongoose";
 
 // ✅ Get commissions for logged-in user
 export const getMyCommissions = async (req, res) => {
@@ -28,11 +31,7 @@ export const getMyCommissions = async (req, res) => {
 export const getMyCommissionSummary = async (req, res) => {
   try {
     const result = await Commission.aggregate([
-      {
-        $match: {
-          beneficiary: req.user.userId,
-        },
-      },
+      { $match: { beneficiary: req.user.userId } },
       {
         $group: {
           _id: "$status",
@@ -42,12 +41,7 @@ export const getMyCommissionSummary = async (req, res) => {
       },
     ]);
 
-    const summary = {
-      pending: 0,
-      approved: 0,
-      cancelled: 0,
-      total: 0,
-    };
+    const summary = { pending: 0, approved: 0, cancelled: 0, total: 0 };
 
     for (const item of result) {
       const status = item._id.toLowerCase();
@@ -58,10 +52,7 @@ export const getMyCommissionSummary = async (req, res) => {
 
     summary.total = summary.pending + summary.approved + summary.cancelled;
 
-    return res.status(200).json({
-      success: true,
-      summary,
-    });
+    return res.status(200).json({ success: true, summary });
   } catch (error) {
     console.error("Get commission summary error:", error);
     return res.status(500).json({
@@ -94,38 +85,109 @@ export const getAllPendingCommissions = async (req, res) => {
   }
 };
 
-// ✅ Admin: Approve a commission
+// ✅ Admin: Approve commission and credit wallet
 export const approveCommission = async (req, res) => {
+  const session = await mongoose.startSession();
+
   try {
-    const commission = await Commission.findById(req.params.id);
+    session.startTransaction();
+
+    const commission =
+      await Commission.findOneAndUpdate(
+        {
+          _id: req.params.id,
+          status: "PENDING",
+        },
+        {
+          $set: {
+            status: "APPROVED",
+          },
+        },
+        {
+          new: true,
+          session,
+        }
+      );
 
     if (!commission) {
-      return res.status(404).json({
-        success: false,
-        message: "Commission not found",
-      });
+      throw new Error(
+        "Commission not found or already processed"
+      );
     }
 
-    if (commission.status !== "PENDING") {
-      return res.status(400).json({
-        success: false,
-        message: "Only pending commissions can be approved",
-      });
-    }
+    const wallet = await Wallet.findOneAndUpdate(
+      {
+        user: commission.beneficiary,
+      },
+      {
+        $setOnInsert: {
+          user: commission.beneficiary,
+          availableBalance: 0,
+          pendingBalance: 0,
+          totalEarned: 0,
+        },
+      },
+      {
+        new: true,
+        upsert: true,
+        setDefaultsOnInsert: true,
+        session,
+      }
+    );
 
-    commission.status = "APPROVED";
-    await commission.save();
+    const updatedWallet =
+      await Wallet.findOneAndUpdate(
+        {
+          _id: wallet._id,
+        },
+        {
+          $inc: {
+            availableBalance: commission.amount,
+            totalEarned: commission.amount,
+          },
+        },
+        {
+          new: true,
+          session,
+        }
+      );
+
+    await Transaction.create(
+      [
+        {
+          user: commission.beneficiary,
+          type: "COMMISSION",
+          amount: commission.amount,
+          direction: "CREDIT",
+          description: `Commission for order ${commission.order}`,
+          reference: commission._id,
+        },
+      ],
+      { session }
+    );
+
+    await session.commitTransaction();
 
     return res.status(200).json({
       success: true,
-      message: "Commission approved successfully",
+      message:
+        "Commission approved and wallet credited",
       commission,
+      wallet: updatedWallet,
     });
   } catch (error) {
-    console.error("Approve commission error:", error);
-    return res.status(500).json({
+    await session.abortTransaction();
+
+    console.error(
+      "Approve commission error:",
+      error
+    );
+
+    return res.status(400).json({
       success: false,
-      message: "Failed to approve commission",
+      message: error.message,
     });
+  } finally {
+    await session.endSession();
   }
 };
