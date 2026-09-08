@@ -1,5 +1,6 @@
 import User from "../models/User.js";
-import Commission from "../models/Commission.js";`r`nimport { notifyCommissionCreated } from "./notificationService.js";
+import Commission from "../models/Commission.js";
+import { notifyCommissionCreated } from "./notificationService.js";
 
 import {
   COMMISSION_RATES,
