@@ -1,4 +1,4 @@
-import Withdrawal from "../models/Withdrawal.js";
+import Withdrawal from "../models/Withdrawal.js";`r`nimport { notifyWithdrawalRequested, notifyWithdrawalProcessed } from "../services/notificationService.js";
 
 import {
   createWithdrawalRequest,
@@ -32,6 +32,11 @@ export const requestWithdrawal = async (req, res) => {
         paymentMethod,
         paymentDetails,
       });
+
+    await notifyWithdrawalRequested({
+      userId: req.user.userId,
+      amount: Number(amount),
+    });
 
     return res.status(201).json({
       success: true,
@@ -161,3 +166,4 @@ export const updateWithdrawalStatus = async (
     });
   }
 };
+

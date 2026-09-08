@@ -17,6 +17,7 @@ import commissionRoutes from "./routes/commissionRoutes.js";
 import referralRoutes from "./routes/referralRoutes.js";
 import walletRoutes from "./routes/walletRoutes.js";
 import withdrawalRoutes from "./routes/withdrawalRoutes.js";
+import notificationRoutes from "./routes/notificationRoutes.js";
 
 dotenv.config();
 
@@ -68,6 +69,10 @@ app.use("/api/wallet", walletRoutes);
 app.use(
   "/api/withdrawals",
   withdrawalRoutes
+);
+app.use(
+  "/api/notifications",
+  notificationRoutes
 );
 
 // ✅ 404 Handler

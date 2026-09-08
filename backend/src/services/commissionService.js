@@ -1,5 +1,5 @@
 import User from "../models/User.js";
-import Commission from "../models/Commission.js";
+import Commission from "../models/Commission.js";`r`nimport { notifyCommissionCreated } from "./notificationService.js";
 
 import {
   COMMISSION_RATES,
@@ -74,6 +74,13 @@ export const createCommissionsForOrder = async (order) => {
           });
 
           commissions.push(commission);
+
+          await notifyCommissionCreated({
+            userId: sponsor._id,
+            amount,
+            level,
+            orderId: order._id,
+          });
         }
       }
     }
@@ -84,3 +91,4 @@ export const createCommissionsForOrder = async (order) => {
 
   return commissions;
 };
+

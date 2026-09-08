@@ -1,7 +1,8 @@
 import Commission from "../models/Commission.js";
 import Wallet from "../models/Wallet.js";
 import Transaction from "../models/Transaction.js";
-import mongoose from "mongoose";
+import mongoose from "mongoose";`rn`
+import { notifyCommissionApproved } from "../services/notificationService.js";
 
 // ✅ Get commissions for logged-in user
 export const getMyCommissions = async (req, res) => {
@@ -168,6 +169,11 @@ export const approveCommission = async (req, res) => {
 
     await session.commitTransaction();
 
+    await notifyCommissionApproved({
+      userId: commission.beneficiary,
+      amount: commission.amount,
+    });
+
     return res.status(200).json({
       success: true,
       message:
@@ -191,3 +197,4 @@ export const approveCommission = async (req, res) => {
     await session.endSession();
   }
 };
+

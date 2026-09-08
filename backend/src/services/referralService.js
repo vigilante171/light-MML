@@ -1,4 +1,4 @@
-import Referral from "../models/Referral.js";
+import Referral from "../models/Referral.js";`r`nimport { notifyReferralCreated } from "./notificationService.js";
 
 export const createReferralForUser = async (user) => {
   if (!user.sponsor) {
@@ -18,6 +18,11 @@ export const createReferralForUser = async (user) => {
     member: user._id,
     level: 1,
     status: "ACTIVE",
+  });
+
+  await notifyReferralCreated({
+    sponsorId: user.sponsor,
+    memberName: `${user.firstName} ${user.lastName}`,
   });
 
   return referral;
@@ -50,3 +55,4 @@ export const getUserReferralStats = async (userId) => {
     totalReferrals,
   };
 };
+
