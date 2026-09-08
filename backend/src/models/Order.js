@@ -76,6 +76,16 @@ const orderSchema = new mongoose.Schema(
       enum: ["PENDING", "PAID", "FAILED", "REFUNDED"],
       default: "PENDING",
     },
+    isCommissionable: {
+  type: Boolean,
+  default: false,
+},
+
+commissionValue: {
+  type: Number,
+  min: 0,
+  default: 0,
+},
   },
   {
     timestamps: true,

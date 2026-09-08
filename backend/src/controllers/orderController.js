@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import Cart from "../models/Cart.js";
 import Product from "../models/Product.js";
 import Order from "../models/Order.js";
+import { createCommissionsForOrder } from "../services/commissionService.js";
 
 export const checkout = async (req, res) => {
   const session = await mongoose.startSession();
@@ -45,13 +46,15 @@ export const checkout = async (req, res) => {
 
       const subtotal = product.price * item.quantity;
 
-      orderItems.push({
-        product: product._id,
-        name: product.name,
-        quantity: item.quantity,
-        price: product.price,
-        subtotal,
-      });
+     orderItems.push({
+  product: product._id,
+  name: product.name,
+  quantity: item.quantity,
+  price: product.price,
+  subtotal,
+  isCommissionable: product.isCommissionable,
+  commissionValue: product.commissionValue,
+});
 
       totalAmount += subtotal;
     }
@@ -223,6 +226,76 @@ export const updateOrderStatus = async (req, res) => {
       });
     }
 
+    const previousStatus = order.status;
+
+    order.status = status;
+
+    if (status === "PAID") {
+      order.paymentStatus = "PAID";
+    }
+
+    if (status === "REFUNDED") {
+      order.paymentStatus = "REFUNDED";
+    }
+
+    await order.save();
+
+    let commissions = [];
+
+    if (
+      status === "PAID" &&
+      previousStatus !== "PAID"
+    ) {
+      commissions = await createCommissionsForOrder(order);
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Order status updated successfully",
+      order,
+      commissionsCreated: commissions.length,
+    });
+  } catch (error) {
+    console.error(
+      "Update order status error:",
+      error
+    );
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to update order status",
+    });
+  }
+};
+  try {
+    const { status } = req.body;
+
+    const allowedStatuses = [
+      "PENDING",
+      "PAID",
+      "PROCESSING",
+      "SHIPPED",
+      "DELIVERED",
+      "CANCELLED",
+      "REFUNDED",
+    ];
+
+    if (!allowedStatuses.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid order status",
+      });
+    }
+
+    const order = await Order.findById(req.params.id);
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found",
+      });
+    }
+
     order.status = status;
 
     if (status === "PAID") {
@@ -247,4 +320,4 @@ export const updateOrderStatus = async (req, res) => {
       message: "Failed to update order status",
     });
   }
-};
+

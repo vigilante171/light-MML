@@ -13,6 +13,7 @@ import productRoutes from "./routes/productRoutes.js";
 import cartRoutes from "./routes/cartRoutes.js";
 import orderRoutes from "./routes/orderRoutes.js";`r`
 import referralRoutes from "./routes/referralRoutes.js";
+import commissionRoutes from "./routes/commissionRoutes.js";
 import referralRoutes from "./routes/referralRoutes.js";
 
 dotenv.config();
@@ -60,6 +61,7 @@ app.use("/api/orders", orderRoutes);`r`
 app.use("/api/referrals", referralRoutes);
 app.use("/api/referrals", referralRoutes);
 app.use("/api/genealogy", genealogyRoutes);
+app.use("/api/commissions", commissionRoutes);
 
 // ✅ 404 Handler
 app.use((req, res) => {

@@ -55,6 +55,17 @@ const commissionSchema = new mongoose.Schema(
   }
 );
 
+commissionSchema.index(
+  {
+    beneficiary: 1,
+    order: 1,
+    level: 1,
+  },
+  {
+    unique: true,
+  }
+);
+
 const Commission = mongoose.model("Commission", commissionSchema);
 
 export default Commission;
