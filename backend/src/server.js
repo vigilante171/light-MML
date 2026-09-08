@@ -6,7 +6,7 @@ import helmet from "helmet";
 import morgan from "morgan";
 import cookieParser from "cookie-parser";
 import rateLimit from "express-rate-limit";
-
+import genealogyRoutes from "./routes/genealogyRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
 import categoryRoutes from "./routes/categoryRoutes.js";
 import productRoutes from "./routes/productRoutes.js";
@@ -59,6 +59,7 @@ app.use("/api/cart", cartRoutes);
 app.use("/api/orders", orderRoutes);`r`
 app.use("/api/referrals", referralRoutes);
 app.use("/api/referrals", referralRoutes);
+app.use("/api/genealogy", genealogyRoutes);
 
 // ✅ 404 Handler
 app.use((req, res) => {
