@@ -1,32 +1,30 @@
 import Wallet from "../models/Wallet.js";
 import Transaction from "../models/Transaction.js";
 
-export const getOrCreateWallet = async (
-  userId,
-  session = null
-) => {
-  const options = {
-    new: true,
-    upsert: true,
-    setDefaultsOnInsert: true,
-  };
+export const getOrCreateWallet = async (userId, session = null) => {
+  const query = Wallet.findOne({ user: userId });
 
   if (session) {
-    options.session = session;
+    query.session(session);
   }
 
-  const wallet = await Wallet.findOneAndUpdate(
-    { user: userId },
-    {
-      $setOnInsert: {
-        user: userId,
-        availableBalance: 0,
-        pendingBalance: 0,
-        totalEarned: 0,
-      },
-    },
-    options
-  );
+  let wallet = await query;
+
+  if (!wallet) {
+    const wallets = await Wallet.create(
+      [
+        {
+          user: userId,
+          availableBalance: 0,
+          pendingBalance: 0,
+          totalEarned: 0,
+        },
+      ],
+      session ? { session } : {}
+    );
+
+    wallet = wallets[0];
+  }
 
   return wallet;
 };
@@ -39,7 +37,7 @@ export const creditWallet = async ({
   reference = null,
   session = null,
 }) => {
-  if (amount <= 0) {
+  if (!Number.isFinite(amount) || amount <= 0) {
     throw new Error(
       "Credit amount must be greater than zero"
     );
@@ -50,26 +48,21 @@ export const creditWallet = async ({
     session
   );
 
-  const updateOptions = {};
+  wallet.availableBalance = Number(
+    (
+      wallet.availableBalance + amount
+    ).toFixed(2)
+  );
 
-  if (session) {
-    updateOptions.session = session;
-  }
+  wallet.totalEarned = Number(
+    (
+      wallet.totalEarned + amount
+    ).toFixed(2)
+  );
 
-  const updatedWallet =
-    await Wallet.findOneAndUpdate(
-      { _id: wallet._id },
-      {
-        $inc: {
-          availableBalance: amount,
-          totalEarned: amount,
-        },
-      },
-      {
-        new: true,
-        ...updateOptions,
-      }
-    );
+  await wallet.save(
+    session ? { session } : {}
+  );
 
   await Transaction.create(
     [
@@ -82,10 +75,10 @@ export const creditWallet = async ({
         reference,
       },
     ],
-    session ? { session } : undefined
+    session ? { session } : {}
   );
 
-  return updatedWallet;
+  return wallet;
 };
 
 export const debitWallet = async ({
@@ -96,38 +89,32 @@ export const debitWallet = async ({
   reference = null,
   session = null,
 }) => {
-  if (amount <= 0) {
+  if (!Number.isFinite(amount) || amount <= 0) {
     throw new Error(
       "Debit amount must be greater than zero"
     );
   }
 
-  const options = {};
+  const wallet = await getOrCreateWallet(
+    userId,
+    session
+  );
 
-  if (session) {
-    options.session = session;
-  }
-
-  const wallet =
-    await Wallet.findOneAndUpdate(
-      {
-        user: userId,
-        availableBalance: { $gte: amount },
-      },
-      {
-        $inc: {
-          availableBalance: -amount,
-        },
-      },
-      {
-        new: true,
-        ...options,
-      }
+  if (wallet.availableBalance < amount) {
+    throw new Error(
+      "Insufficient wallet balance"
     );
-
-  if (!wallet) {
-    throw new Error("Insufficient wallet balance");
   }
+
+  wallet.availableBalance = Number(
+    (
+      wallet.availableBalance - amount
+    ).toFixed(2)
+  );
+
+  await wallet.save(
+    session ? { session } : {}
+  );
 
   await Transaction.create(
     [
@@ -140,7 +127,7 @@ export const debitWallet = async ({
         reference,
       },
     ],
-    session ? { session } : undefined
+    session ? { session } : {}
   );
 
   return wallet;

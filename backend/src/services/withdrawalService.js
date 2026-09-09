@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import Withdrawal from "../models/Withdrawal.js";
 import { debitWallet } from "./walletService.js";
 
@@ -7,78 +8,74 @@ export const createWithdrawalRequest = async ({
   paymentMethod,
   paymentDetails,
 }) => {
-  if (amount <= 0) {
-    throw new Error("Withdrawal amount must be greater than zero");
+  if (!Number.isFinite(amount) || amount <= 0) {
+    throw new Error(
+      "Withdrawal amount must be greater than zero"
+    );
   }
 
-  const withdrawal = await Withdrawal.create({
-    user: userId,
-    amount,
-    status: "PENDING",
-    paymentMethod,
-    paymentDetails,
-  });
+  const withdrawal =
+    await Withdrawal.create({
+      user: userId,
+      amount,
+      status: "PENDING",
+      paymentMethod,
+      paymentDetails,
+    });
 
   return withdrawal;
 };
 
-export const processWithdrawal = async ({ withdrawalId, status, adminNote }) => {
-  const withdrawal = await Withdrawal.findById(withdrawalId);
+export const processWithdrawal = async ({
+  withdrawalId,
+  status,
+  adminNote,
+}) => {
+  const session =
+    await mongoose.startSession();
 
-  if (!withdrawal) {
-    throw new Error("Withdrawal not found");
-  }
-
-  if (withdrawal.status !== "PENDING") {
-    throw new Error("Only pending withdrawals can be processed");
-  }
-
-  let wallet = null;
-
-  if (status === "APPROVED") {
-    wallet = await debitWallet({
-      userId: withdrawal.user,
-      amount: withdrawal.amount,
-      type: "WITHDRAWAL",
-      description: "Withdrawal approved",
-      reference: withdrawal._id,
-    });
-  }
-
-  withdrawal.status = status;
-
-  if (adminNote) {
-    withdrawal.adminNote = adminNote;
-  }
-
-  await withdrawal.save();
-
-  // ✅ Return both withdrawal and wallet
-  return { withdrawal, wallet };
-};
-
-// ✅ Controller handler for updating withdrawal status
-export const updateWithdrawalStatus = async (req, res) => {
   try {
-    const { status, adminNote } = req.body;
+    session.startTransaction();
 
-    const result = await processWithdrawal({
-      withdrawalId: req.params.id,
-      status,
-      adminNote,
-    });
+    const withdrawal =
+      await Withdrawal.findOne({
+        _id: withdrawalId,
+        status: "PENDING",
+      }).session(session);
 
-    return res.status(200).json({
-      success: true,
-      message: "Withdrawal status updated successfully",
-      withdrawal: result.withdrawal,
-      wallet: result.wallet,
-    });
+    if (!withdrawal) {
+      throw new Error(
+        "Withdrawal not found or already processed"
+      );
+    }
+
+    if (status === "APPROVED") {
+      await debitWallet({
+        userId: withdrawal.user,
+        amount: withdrawal.amount,
+        type: "WITHDRAWAL",
+        description:
+          "Withdrawal approved",
+        reference: withdrawal._id,
+        session,
+      });
+    }
+
+    withdrawal.status = status;
+
+    if (adminNote) {
+      withdrawal.adminNote = adminNote;
+    }
+
+    await withdrawal.save({ session });
+
+    await session.commitTransaction();
+
+    return withdrawal;
   } catch (error) {
-    console.error("Update withdrawal status error:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Failed to update withdrawal status",
-    });
+    await session.abortTransaction();
+    throw error;
+  } finally {
+    await session.endSession();
   }
 };

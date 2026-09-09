@@ -5,7 +5,7 @@ import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
 import cookieParser from "cookie-parser";
-import rateLimit from "express-rate-limit";
+import { generalLimiter } from "./middleware/rateLimiters.js";
 import genealogyRoutes from "./routes/genealogyRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
 import categoryRoutes from "./routes/categoryRoutes.js";
@@ -18,9 +18,10 @@ import referralRoutes from "./routes/referralRoutes.js";
 import walletRoutes from "./routes/walletRoutes.js";
 import withdrawalRoutes from "./routes/withdrawalRoutes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
+import { validateSecurityConfig } from "./config/securityConfig.js";
 
 dotenv.config();
-
+validateSecurityConfig();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
@@ -74,6 +75,7 @@ app.use(
   "/api/notifications",
   notificationRoutes
 );
+app.use("/api", generalLimiter);
 
 // ✅ 404 Handler
 app.use((req, res) => {

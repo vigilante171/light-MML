@@ -1,7 +1,7 @@
 import Commission from "../models/Commission.js";
 import Wallet from "../models/Wallet.js";
 import Transaction from "../models/Transaction.js";
-import mongoose from "mongoose";`rn`
+import mongoose from "mongoose";
 import { notifyCommissionApproved } from "../services/notificationService.js";
 
 // ✅ Get commissions for logged-in user
@@ -86,72 +86,59 @@ export const getAllPendingCommissions = async (req, res) => {
   }
 };
 
-// ✅ Admin: Approve commission and credit wallet
+// ✅ Admin: Approve commission and credit wallet (updated version)
 export const approveCommission = async (req, res) => {
   const session = await mongoose.startSession();
 
   try {
     session.startTransaction();
 
-    const commission =
-      await Commission.findOneAndUpdate(
-        {
-          _id: req.params.id,
-          status: "PENDING",
-        },
-        {
-          $set: {
-            status: "APPROVED",
-          },
-        },
-        {
-          new: true,
-          session,
-        }
-      );
-
-    if (!commission) {
-      throw new Error(
-        "Commission not found or already processed"
-      );
-    }
-
-    const wallet = await Wallet.findOneAndUpdate(
+    const commission = await Commission.findOneAndUpdate(
       {
-        user: commission.beneficiary,
+        _id: req.params.id,
+        status: "PENDING",
       },
-      {
-        $setOnInsert: {
-          user: commission.beneficiary,
-          availableBalance: 0,
-          pendingBalance: 0,
-          totalEarned: 0,
-        },
-      },
-      {
-        new: true,
-        upsert: true,
-        setDefaultsOnInsert: true,
-        session,
-      }
+      { $set: { status: "APPROVED" } },
+      { new: true, session }
     );
 
-    const updatedWallet =
-      await Wallet.findOneAndUpdate(
-        {
-          _id: wallet._id,
-        },
-        {
-          $inc: {
-            availableBalance: commission.amount,
-            totalEarned: commission.amount,
+    if (!commission) {
+      await session.abortTransaction();
+      return res.status(404).json({
+        success: false,
+        message: "Commission not found or already processed",
+      });
+    }
+
+    const wallet = await Wallet.findOne({
+      user: commission.beneficiary,
+    }).session(session);
+
+    let updatedWallet = wallet;
+
+    if (!updatedWallet) {
+      const wallets = await Wallet.create(
+        [
+          {
+            user: commission.beneficiary,
+            availableBalance: 0,
+            pendingBalance: 0,
+            totalEarned: 0,
           },
-        },
-        {
-          new: true,
-          session,
-        }
+        ],
+        { session }
       );
+      updatedWallet = wallets[0];
+    }
+
+    updatedWallet.availableBalance = Number(
+      (updatedWallet.availableBalance + commission.amount).toFixed(2)
+    );
+    updatedWallet.totalEarned = Number(
+      (updatedWallet.totalEarned + commission.amount).toFixed(2)
+    );
+
+    await updatedWallet.save({ session });
 
     await Transaction.create(
       [
@@ -169,32 +156,20 @@ export const approveCommission = async (req, res) => {
 
     await session.commitTransaction();
 
-    await notifyCommissionApproved({
-      userId: commission.beneficiary,
-      amount: commission.amount,
-    });
-
     return res.status(200).json({
       success: true,
-      message:
-        "Commission approved and wallet credited",
+      message: "Commission approved and wallet credited",
       commission,
       wallet: updatedWallet,
     });
   } catch (error) {
     await session.abortTransaction();
-
-    console.error(
-      "Approve commission error:",
-      error
-    );
-
-    return res.status(400).json({
+    console.error("Approve commission error:", error);
+    return res.status(500).json({
       success: false,
-      message: error.message,
+      message: "Failed to approve commission",
     });
   } finally {
     await session.endSession();
   }
 };
-

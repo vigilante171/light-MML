@@ -1,5 +1,10 @@
 import express from "express";
+import {
+  createProductValidator,
+  updateProductValidator,
+} from "../validators/productValidator.js";
 
+import { validate } from "../middleware/validate.js";
 import {
   createProduct,
   getProducts,
@@ -36,6 +41,20 @@ router.delete(
   authenticate,
   authorize("ADMIN"),
   deleteProduct
+);
+router.post(
+  "/",
+  authorize("ADMIN"),
+  createProductValidator,
+  validate,
+  createProduct
+);
+router.patch(
+  "/:id",
+  authorize("ADMIN"),
+  updateProductValidator,
+  validate,
+  updateProduct
 );
 
 export default router;
