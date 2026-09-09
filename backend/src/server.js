@@ -1,53 +1,78 @@
-import connectDatabase from "./config/database.js";
-import express from "express";
 import dotenv from "dotenv";
+
+dotenv.config();
+
+import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
 import cookieParser from "cookie-parser";
+
+import connectDatabase from "./config/database.js";
+import { validateSecurityConfig } from "./config/securityConfig.js";
+
 import { generalLimiter } from "./middleware/rateLimiters.js";
-import genealogyRoutes from "./routes/genealogyRoutes.js";
+import { errorHandler } from "./middleware/errorHandler.js";
+
 import authRoutes from "./routes/authRoutes.js";
 import categoryRoutes from "./routes/categoryRoutes.js";
 import productRoutes from "./routes/productRoutes.js";
 import cartRoutes from "./routes/cartRoutes.js";
-import orderRoutes from "./routes/orderRoutes.js";`r`
+import orderRoutes from "./routes/orderRoutes.js";
 import referralRoutes from "./routes/referralRoutes.js";
+import genealogyRoutes from "./routes/genealogyRoutes.js";
 import commissionRoutes from "./routes/commissionRoutes.js";
-import referralRoutes from "./routes/referralRoutes.js";
 import walletRoutes from "./routes/walletRoutes.js";
 import withdrawalRoutes from "./routes/withdrawalRoutes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
-import { validateSecurityConfig } from "./config/securityConfig.js";
 
-dotenv.config();
 validateSecurityConfig();
+
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// ✅ Security & Middleware
+// ==========================================
+// SECURITY & MIDDLEWARE
+// ==========================================
+
 app.use(
   cors({
-    origin: process.env.CLIENT_URI || "http://localhost:5173",
+    origin:
+      process.env.CLIENT_URL ||
+      "http://localhost:5173",
     credentials: true,
   })
 );
+
 app.use(helmet());
+
 app.use(morgan("dev"));
+
 app.use(cookieParser());
-app.use(express.json({ limit: "10kb" }));
-app.use(express.urlencoded({ extended: true, limit: "10kb" }));
 
-// ✅ Rate Limiter
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // requests per window per IP
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-app.use("/api", limiter);
+app.use(
+  express.json({
+    limit: "10kb",
+  })
+);
 
-// ✅ Health Check
+app.use(
+  express.urlencoded({
+    extended: true,
+    limit: "10kb",
+  })
+);
+
+// ==========================================
+// RATE LIMITING
+// ==========================================
+
+app.use("/api", generalLimiter);
+
+// ==========================================
+// HEALTH CHECK
+// ==========================================
+
 app.get("/api/health", (req, res) => {
   res.status(200).json({
     success: true,
@@ -56,28 +81,42 @@ app.get("/api/health", (req, res) => {
   });
 });
 
-// ✅ Routes
+// ==========================================
+// API ROUTES
+// ==========================================
+
 app.use("/api/auth", authRoutes);
+
 app.use("/api/categories", categoryRoutes);
+
 app.use("/api/products", productRoutes);
+
 app.use("/api/cart", cartRoutes);
-app.use("/api/orders", orderRoutes);`r`
+
+app.use("/api/orders", orderRoutes);
+
 app.use("/api/referrals", referralRoutes);
-app.use("/api/referrals", referralRoutes);
+
 app.use("/api/genealogy", genealogyRoutes);
+
 app.use("/api/commissions", commissionRoutes);
+
 app.use("/api/wallet", walletRoutes);
+
 app.use(
   "/api/withdrawals",
   withdrawalRoutes
 );
+
 app.use(
   "/api/notifications",
   notificationRoutes
 );
-app.use("/api", generalLimiter);
 
-// ✅ 404 Handler
+// ==========================================
+// 404 HANDLER
+// ==========================================
+
 app.use((req, res) => {
   res.status(404).json({
     success: false,
@@ -85,15 +124,34 @@ app.use((req, res) => {
   });
 });
 
-// ✅ Start Server
-const startServer = async () => {
-  await connectDatabase();
+// ==========================================
+// GLOBAL ERROR HANDLER
+// MUST BE LAST
+// ==========================================
 
-  app.listen(PORT, () => {
-    console.log(`🚀 Server running on http://localhost:${PORT}`);
-  });
+app.use(errorHandler);
+
+// ==========================================
+// START SERVER
+// ==========================================
+
+const startServer = async () => {
+  try {
+    await connectDatabase();
+
+    app.listen(PORT, () => {
+      console.log(
+        `🚀 Server running on http://localhost:${PORT}`
+      );
+    });
+  } catch (error) {
+    console.error(
+      "❌ Failed to start server:",
+      error
+    );
+
+    process.exit(1);
+  }
 };
 
 startServer();
-
-
