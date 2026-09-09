@@ -1,0 +1,36 @@
+.error-state {
+  padding: var(--space-8);
+  text-align: center;
+
+  border: 1px solid #fecaca;
+  border-radius: var(--radius-lg);
+
+  background: #fffafa;
+}
+
+.error-state h3 {
+  color: var(--color-danger);
+}
+
+.error-state p {
+  margin-top: var(--space-2);
+}
+
+.error-retry {
+  margin-top: var(--space-4);
+
+  min-height: 40px;
+  padding: 0 16px;
+
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+
+  background: #ffffff;
+  color: var(--color-text);
+
+  font-weight: 500;
+}
+
+.error-retry:hover {
+  background: var(--color-surface);
+}
