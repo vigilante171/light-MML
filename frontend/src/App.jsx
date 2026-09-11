@@ -1,11 +1,11 @@
+﻿import AppRoutes from "./routes/AppRoutes.jsx";
+import { AuthProvider } from "./context/AuthContext.jsx";
+
 function App() {
   return (
-    <main>
-      <h1>Product MLM</h1>
-      <p>
-        Product-based referral platform.
-      </p>
-    </main>
+    <AuthProvider>
+      <AppRoutes />
+    </AuthProvider>
   );
 }
 
