@@ -1,40 +1,58 @@
 ﻿import { BrowserRouter, Routes, Route } from "react-router-dom";
+import MainLayout from "../layouts/MainLayout.jsx";
 
 function Home() {
-  return <div>Home</div>;
+  return (
+    <div className="container page">
+      <h1>Product MLM</h1>
+      <p>Product-based referral platform.</p>
+    </div>
+  );
 }
 
 function Login() {
-  return <div>Login</div>;
+  return (
+    <div className="container page">
+      <h1>Login</h1>
+    </div>
+  );
 }
 
 function Register() {
-  return <div>Register</div>;
+  return (
+    <div className="container page">
+      <h1>Create account</h1>
+    </div>
+  );
 }
 
 function Products() {
-  return <div>Products</div>;
+  return (
+    <div className="container page">
+      <h1>Products</h1>
+    </div>
+  );
 }
 
 function Dashboard() {
-  return <div>Dashboard</div>;
+  return (
+    <div className="container page">
+      <h1>Dashboard</h1>
+    </div>
+  );
 }
 
 function AppRoutes() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Home />} />
-
-        {/* Authentication */}
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-
-        {/* Public */}
-        <Route path="/products" element={<Products />} />
-
-        {/* User */}
-        <Route path="/dashboard" element={<Dashboard />} />
+        <Route element={<MainLayout />}>
+          <Route path="/" element={<Home />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/products" element={<Products />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+        </Route>
       </Routes>
     </BrowserRouter>
   );
