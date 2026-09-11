@@ -1,11 +1,14 @@
 ﻿import { BrowserRouter, Routes, Route } from "react-router-dom";
 import MainLayout from "../layouts/MainLayout.jsx";
+import Products from "../pages/public/Products.jsx";
 
 function Home() {
   return (
     <div className="container page">
       <h1>Product MLM</h1>
-      <p>Product-based referral platform.</p>
+      <p>
+        A product-based referral platform.
+      </p>
     </div>
   );
 }
@@ -22,14 +25,6 @@ function Register() {
   return (
     <div className="container page">
       <h1>Create account</h1>
-    </div>
-  );
-}
-
-function Products() {
-  return (
-    <div className="container page">
-      <h1>Products</h1>
     </div>
   );
 }
